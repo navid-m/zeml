@@ -17,6 +17,8 @@ pub const Attachment = struct {
 
     pub fn deinit(self: *Attachment, allocator: std.mem.Allocator) void {
         allocator.free(self.data);
+        allocator.free(self.filename);
+        allocator.free(self.content_type);
     }
 };
 
