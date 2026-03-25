@@ -1,25 +1,59 @@
 const std = @import("std");
-const ebreaker = @import("ebreaker");
+const zeml = @import("zeml");
 
 pub fn main() !void {
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
-    try ebreaker.bufferedPrint();
-}
-
-test "simple test" {
-    const gpa = std.testing.allocator;
-    var list: std.ArrayList(i32) = .empty;
-    defer list.deinit(gpa);
-    try list.append(gpa, 42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
-}
-
-test "fuzz example" {
-    const Context = struct {
-        fn testOne(context: @This(), input: []const u8) anyerror!void {
-            _ = context;
-            try std.testing.expect(!std.mem.eql(u8, "canyoufindme", input));
-        }
-    };
-    try std.testing.fuzz(Context{}, Context.testOne, .{});
+    std.debug.print(
+        \\ zeml - advanced .eml parser and converter
+        \\
+        \\ Usage:
+        \\     zeml <file.eml> [options]
+        \\
+        \\ Description:
+        \\     Parses MIME email (.eml) files and provides tools for extracting
+        \\     message contents, headers, attachments, and metadata.
+        \\
+        \\ Options:
+        \\     --to-txt
+        \\         Convert the email body to plain text and print to stdout.
+        \\
+        \\     --to-csv
+        \\         Output email metadata (From, To, Subject, Date, etc.) as CSV.
+        \\
+        \\     --headers
+        \\         Print all parsed email headers.
+        \\
+        \\     --body
+        \\         Print the raw or decoded email body.
+        \\
+        \\     --attachments
+        \\         List all attachments in the email.
+        \\
+        \\     --extract-attachments <dir>
+        \\         Extract all attachments to the specified directory.
+        \\
+        \\     --filter-header <name>
+        \\         Print a specific header (e.g. "Subject", "From").
+        \\
+        \\     --json
+        \\         Output full parsed structure as JSON.
+        \\
+        \\     --charset <encoding>
+        \\         Override detected charset when decoding message body.
+        \\
+        \\     --max-size <bytes>
+        \\         Skip parsing parts larger than the specified size.
+        \\
+        \\     --quiet
+        \\         Suppress non-essential output.
+        \\
+        \\     --help
+        \\         Show this help message.
+        \\
+        \\ Exit Codes:
+        \\     0  Success
+        \\     1  Invalid arguments
+        \\     2  File not found / unreadable
+        \\     3  Parse error
+        \\
+    , .{});
 }
