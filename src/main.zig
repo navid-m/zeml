@@ -146,6 +146,7 @@ pub fn main() !void {
 
     if (opts.version) {
         std.debug.print("{s}\n", .{version_text});
+        return;
     }
 
     if (opts.help or opts.file_path == null) {
