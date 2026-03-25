@@ -72,7 +72,9 @@ pub fn parseEmail(allocator: std.mem.Allocator, input: []const u8) ParseError!Em
     }
 
     const headers_section = input[0..header_end];
-    const body = if (header_end + 4 < input.len) input[header_end + 4 ..] else "";
+    // Determine separator length: \r\n\r\n = 4, \n\n = 2
+    const sep_len: usize = if (header_end + 1 < input.len and input[header_end] == '\r') 4 else 2;
+    const body = if (header_end + sep_len <= input.len) input[header_end + sep_len ..] else "";
 
     var header_count: usize = 0;
     var line_start: usize = 0;
