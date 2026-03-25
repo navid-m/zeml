@@ -1,4 +1,5 @@
 //! Email (.eml) parser module
+
 const std = @import("std");
 const testing = std.testing;
 
@@ -12,7 +13,7 @@ pub const EmailHeader = struct {
 pub const Attachment = struct {
     filename: []const u8,
     content_type: []const u8,
-    data: []const u8, // owned, must be freed
+    data: []const u8,
     size: usize,
 
     pub fn deinit(self: *Attachment, allocator: std.mem.Allocator) void {
