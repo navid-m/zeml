@@ -1,6 +1,7 @@
 const std = @import("std");
 const zeml = @import("zeml");
 
+const version_text = "v0.0.1";
 const help_text =
     \\ zeml - advanced .eml parser and converter
     \\
@@ -45,6 +46,9 @@ const help_text =
     \\     --quiet
     \\         Suppress non-essential output.
     \\
+    \\     --version
+    \\         Show the current version of zeml.
+    \\
     \\     --help
     \\         Show this help message.
     \\
@@ -64,6 +68,7 @@ const Options = struct {
     max_size: ?usize = null,
     quiet: bool = false,
     help: bool = false,
+    version: bool = false,
 };
 
 pub fn main() !void {
@@ -80,6 +85,8 @@ pub fn main() !void {
         const arg = args[i];
         if (std.mem.eql(u8, arg, "--help")) {
             opts.help = true;
+        } else if (std.mem.eql(u8, arg, "--version")) {
+            opts.version = true;
         } else if (std.mem.eql(u8, arg, "--to-txt")) {
             opts.to_txt = true;
         } else if (std.mem.eql(u8, arg, "--to-csv")) {
@@ -135,6 +142,10 @@ pub fn main() !void {
             }
             opts.file_path = arg;
         }
+    }
+
+    if (opts.version) {
+        std.debug.print("{s}\n", .{version_text});
     }
 
     if (opts.help or opts.file_path == null) {
