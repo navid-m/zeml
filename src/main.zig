@@ -48,12 +48,6 @@ const help_text =
     \\     --help
     \\         Show this help message.
     \\
-    \\ Exit Codes:
-    \\     0  Success
-    \\     1  Invalid arguments
-    \\     2  File not found / unreadable
-    \\     3  Parse error
-    \\
 ;
 
 const Options = struct {
@@ -76,9 +70,6 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
-
-    const stdout = std.io.getStdOut().writer();
-    const stderr = std.io.getStdErr().writer();
 
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
@@ -106,40 +97,40 @@ pub fn main() !void {
         } else if (std.mem.eql(u8, arg, "--extract-attachments")) {
             i += 1;
             if (i >= args.len) {
-                try stderr.print("error: --extract-attachments requires a directory argument\n", .{});
+                std.debug.print("error: --extract-attachments requires a directory argument\n", .{});
                 std.process.exit(1);
             }
             opts.extract_attachments = args[i];
         } else if (std.mem.eql(u8, arg, "--filter-header")) {
             i += 1;
             if (i >= args.len) {
-                try stderr.print("error: --filter-header requires a header name argument\n", .{});
+                std.debug.print("error: --filter-header requires a header name argument\n", .{});
                 std.process.exit(1);
             }
             opts.filter_header = args[i];
         } else if (std.mem.eql(u8, arg, "--charset")) {
             i += 1;
             if (i >= args.len) {
-                try stderr.print("error: --charset requires an encoding argument\n", .{});
+                std.debug.print("error: --charset requires an encoding argument\n", .{});
                 std.process.exit(1);
             }
             opts.charset = args[i];
         } else if (std.mem.eql(u8, arg, "--max-size")) {
             i += 1;
             if (i >= args.len) {
-                try stderr.print("error: --max-size requires a bytes argument\n", .{});
+                std.debug.print("error: --max-size requires a bytes argument\n", .{});
                 std.process.exit(1);
             }
             opts.max_size = std.fmt.parseInt(usize, args[i], 10) catch {
-                try stderr.print("error: --max-size value must be a positive integer\n", .{});
+                std.debug.print("error: --max-size value must be a positive integer\n", .{});
                 std.process.exit(1);
             };
         } else if (std.mem.startsWith(u8, arg, "--")) {
-            try stderr.print("error: unknown option '{s}'\n", .{arg});
+            std.debug.print("error: unknown option '{s}'\n", .{arg});
             std.process.exit(1);
         } else {
             if (opts.file_path != null) {
-                try stderr.print("error: multiple input files specified\n", .{});
+                std.debug.print("error: multiple input files specified\n", .{});
                 std.process.exit(1);
             }
             opts.file_path = arg;
@@ -147,7 +138,7 @@ pub fn main() !void {
     }
 
     if (opts.help or opts.file_path == null) {
-        try stdout.print("{s}", .{help_text});
+        std.debug.print("{s}", .{help_text});
         if (opts.file_path == null and !opts.help) std.process.exit(1);
         return;
     }
@@ -155,15 +146,15 @@ pub fn main() !void {
     const file_content = std.fs.cwd().readFileAlloc(allocator, opts.file_path.?, opts.max_size orelse std.math.maxInt(usize)) catch |err| {
         switch (err) {
             error.FileNotFound => {
-                if (!opts.quiet) try stderr.print("error: file not found: {s}\n", .{opts.file_path.?});
+                if (!opts.quiet) std.debug.print("error: file not found: {s}\n", .{opts.file_path.?});
                 std.process.exit(2);
             },
             error.FileTooBig => {
-                if (!opts.quiet) try stderr.print("error: file exceeds max-size limit\n", .{});
+                if (!opts.quiet) std.debug.print("error: file exceeds max-size limit\n", .{});
                 std.process.exit(2);
             },
             else => {
-                if (!opts.quiet) try stderr.print("error: could not read file: {s}\n", .{opts.file_path.?});
+                if (!opts.quiet) std.debug.print("error: could not read file: {s}\n", .{opts.file_path.?});
                 std.process.exit(2);
             },
         }
@@ -171,7 +162,7 @@ pub fn main() !void {
     defer allocator.free(file_content);
 
     var email = zeml.parseEmail(allocator, file_content) catch {
-        if (!opts.quiet) try stderr.print("error: failed to parse email\n", .{});
+        if (!opts.quiet) std.debug.print("error: failed to parse email\n", .{});
         std.process.exit(3);
     };
     defer email.deinit(allocator);
@@ -182,26 +173,26 @@ pub fn main() !void {
 
     if (opts.headers or no_output_opt) {
         for (email.headers) |h| {
-            try stdout.print("{s}: {s}\n", .{ h.name, h.value });
+            std.debug.print("{s}: {s}\n", .{ h.name, h.value });
         }
-        if (no_output_opt) try stdout.print("\n", .{});
+        if (no_output_opt) std.debug.print("\n", .{});
     }
 
     if (opts.body or opts.to_txt or no_output_opt) {
-        try stdout.print("{s}\n", .{email.body});
+        std.debug.print("{s}\n", .{email.body});
     }
 
     if (opts.filter_header) |name| {
         if (email.getHeader(name)) |value| {
-            try stdout.print("{s}\n", .{value});
+            std.debug.print("{s}\n", .{value});
         } else {
-            if (!opts.quiet) try stderr.print("header '{s}' not found\n", .{name});
+            if (!opts.quiet) std.debug.print("header '{s}' not found\n", .{name});
         }
     }
 
     if (opts.to_csv) {
-        try stdout.print("From,To,Subject,Date\n", .{});
-        try stdout.print("\"{s}\",\"{s}\",\"{s}\",\"{s}\"\n", .{
+        std.debug.print("From,To,Subject,Date\n", .{});
+        std.debug.print("\"{s}\",\"{s}\",\"{s}\",\"{s}\"\n", .{
             email.getFrom() orelse "",
             email.getTo() orelse "",
             email.getSubject() orelse "",
@@ -210,19 +201,19 @@ pub fn main() !void {
     }
 
     if (opts.json) {
-        try stdout.print("{{\n", .{});
-        try stdout.print("  \"headers\": {{\n", .{});
+        std.debug.print("{{\n", .{});
+        std.debug.print("  \"headers\": {{\n", .{});
         for (email.headers, 0..) |h, idx| {
             const comma: []const u8 = if (idx + 1 < email.headers.len) "," else "";
-            try stdout.print("    \"{s}\": \"{s}\"{s}\n", .{ h.name, h.value, comma });
+            std.debug.print("    \"{s}\": \"{s}\"{s}\n", .{ h.name, h.value, comma });
         }
-        try stdout.print("  }},\n", .{});
-        try stdout.print("  \"body\": \"{s}\"\n", .{email.body});
-        try stdout.print("}}\n", .{});
+        std.debug.print("  }},\n", .{});
+        std.debug.print("  \"body\": \"{s}\"\n", .{email.body});
+        std.debug.print("}}\n", .{});
     }
 
     if (opts.attachments or opts.extract_attachments != null) {
-        if (!opts.quiet) try stdout.print("(attachment parsing not yet implemented)\n", .{});
+        if (!opts.quiet) std.debug.print("(attachment parsing not yet implemented)\n", .{});
     }
 }
 
