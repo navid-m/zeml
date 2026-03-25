@@ -282,48 +282,35 @@ pub fn parseEmail(allocator: std.mem.Allocator, input: []const u8) ParseError!Em
     const headers_section = input[0..header_end];
     const sep_len: usize = if (header_end + 1 < input.len and input[header_end] == '\r') 4 else 2;
     const body = if (header_end + sep_len <= input.len) input[header_end + sep_len ..] else "";
+    var header_list: std.ArrayList(EmailHeader) = .empty;
 
-    var header_count: usize = 0;
+    errdefer header_list.deinit(allocator);
+
     var line_start: usize = 0;
 
     while (line_start < headers_section.len) {
         const line_end = findLineEnd(headers_section, line_start);
-        if (line_end > line_start) {
-            header_count += 1;
-        }
+        const raw_line = headers_section[line_start..line_end];
+        const line = trimWhitespace(raw_line);
         line_start = line_end + 1;
-    }
 
-    const headers = try allocator.alloc(EmailHeader, header_count);
-    errdefer allocator.free(headers);
+        if (line.len == 0) continue;
 
-    var header_idx: usize = 0;
-    line_start = 0;
-    while (line_start < headers_section.len and header_idx < header_count) {
-        const line_end = findLineEnd(headers_section, line_start);
-        if (line_end > line_start) {
-            const line = trimWhitespace(headers_section[line_start..line_end]);
-            if (line.len > 0) {
-                const colon_idx = std.mem.indexOfScalar(u8, line, ':') orelse {
-                    line_start = skipToNextLine(headers_section, line_end);
-                    continue;
-                };
-
-                const name = trimWhitespace(line[0..colon_idx]);
-                const value = if (colon_idx + 1 < line.len)
-                    trimWhitespace(line[colon_idx + 1 ..])
-                else
-                    "";
-
-                headers[header_idx] = .{
-                    .name = name,
-                    .value = value,
-                };
-                header_idx += 1;
+        if (raw_line.len > 0 and (raw_line[0] == ' ' or raw_line[0] == '\t')) {
+            if (header_list.items.len > 0) {
+                continue;
             }
         }
-        line_start = skipToNextLine(headers_section, line_end);
+
+        const colon_idx = std.mem.indexOfScalar(u8, line, ':') orelse continue;
+        const name = trimWhitespace(line[0..colon_idx]);
+        const value = if (colon_idx + 1 < line.len) trimWhitespace(line[colon_idx + 1 ..]) else "";
+        if (name.len == 0) continue;
+
+        try header_list.append(allocator, .{ .name = name, .value = value });
     }
+
+    const headers = try header_list.toOwnedSlice(allocator);
 
     var attachments: std.ArrayList(Attachment) = .empty;
     errdefer {
