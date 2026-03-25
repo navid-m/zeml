@@ -4,6 +4,7 @@ const std = @import("std");
 pub const email = @import("email.zig");
 pub const Email = email.Email;
 pub const EmailHeader = email.EmailHeader;
+pub const Attachment = email.Attachment;
 pub const parseEmail = email.parseEmail;
 
 pub fn bufferedPrint() !void {

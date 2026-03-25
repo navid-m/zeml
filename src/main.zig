@@ -208,12 +208,42 @@ pub fn main() !void {
             std.debug.print("    \"{s}\": \"{s}\"{s}\n", .{ h.name, h.value, comma });
         }
         std.debug.print("  }},\n", .{});
-        std.debug.print("  \"body\": \"{s}\"\n", .{email.body});
+        std.debug.print("  \"body\": \"{s}\",\n", .{email.body});
+        std.debug.print("  \"attachments\": [\n", .{});
+        for (email.attachments, 0..) |att, idx| {
+            const comma: []const u8 = if (idx + 1 < email.attachments.len) "," else "";
+            std.debug.print("    {{\"filename\": \"{s}\", \"content_type\": \"{s}\", \"size\": {d}}}{s}\n", .{ att.filename, att.content_type, att.size, comma });
+        }
+        std.debug.print("  ]\n", .{});
         std.debug.print("}}\n", .{});
     }
 
     if (opts.attachments or opts.extract_attachments != null) {
-        if (!opts.quiet) std.debug.print("(attachment parsing not yet implemented)\n", .{});
+        if (email.attachments.len == 0) {
+            if (!opts.quiet) std.debug.print("no attachments found\n", .{});
+        } else if (opts.attachments) {
+            for (email.attachments, 0..) |att, idx| {
+                std.debug.print("[{d}] {s}  ({s}, {d} bytes)\n", .{ idx + 1, att.filename, att.content_type, att.size });
+            }
+        }
+
+        if (opts.extract_attachments) |dir_path| {
+            std.fs.cwd().makePath(dir_path) catch |err| {
+                if (!opts.quiet) std.debug.print("error: could not create directory '{s}': {}\n", .{ dir_path, err });
+                std.process.exit(4);
+            };
+            const out_dir = std.fs.cwd().openDir(dir_path, .{}) catch |err| {
+                if (!opts.quiet) std.debug.print("error: could not open directory '{s}': {}\n", .{ dir_path, err });
+                std.process.exit(4);
+            };
+            for (email.attachments) |att| {
+                out_dir.writeFile(.{ .sub_path = att.filename, .data = att.data }) catch |err| {
+                    if (!opts.quiet) std.debug.print("error: could not write '{s}': {}\n", .{ att.filename, err });
+                    continue;
+                };
+                if (!opts.quiet) std.debug.print("extracted: {s}/{s}\n", .{ dir_path, att.filename });
+            }
+        }
     }
 }
 
