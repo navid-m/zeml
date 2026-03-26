@@ -133,6 +133,7 @@ fn decodeBase64(allocator: std.mem.Allocator, encoded: []const u8) ParseError![]
 }
 
 /// Parse MIME parts from a multipart body given the boundary string.
+///
 /// Appends Attachment entries to `list` for parts with Content-Disposition: attachment
 /// or inline parts that have a filename.
 fn parseMultipart(
