@@ -54,6 +54,7 @@ const help_text =
     \\
 ;
 
+/// The zeml command line arguments.
 const Options = struct {
     file_path: ?[]const u8 = null,
     to_txt: bool = false,
